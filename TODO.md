@@ -40,9 +40,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 6. Weather producer: fetch and print
 
-- [ ] Add an API client that fetches current weather for configured regions and normalizes the response into the pipeline event shape.
-- [ ] Add a command-line producer entry point that prints normalized events; do not connect it to Kafka yet.
-- [ ] Add tests with mocked API responses, including an API failure case, then run them.
+- [x] Add an API client that fetches current weather for configured regions and normalizes the response into the pipeline event shape.
+- [x] Add a command-line producer entry point that prints normalized events; do not connect it to Kafka yet.
+- [x] Add tests with mocked API responses, including an API failure case, then run them.
 
 ### 7. Weather producer: publish to Kafka
 
