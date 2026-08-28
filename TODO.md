@@ -34,9 +34,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 5. Docker Compose: Kafka
 
-- [ ] Add Kafka and the single coordination mode selected for this project (KRaft or ZooKeeper) to Compose.
-- [ ] Add broker health/readiness configuration without changing the PostgreSQL behavior.
-- [ ] Start the services and verify that a client can connect to the broker and use the weather topic.
+- [x] Add Kafka and the single coordination mode selected for this project (KRaft or ZooKeeper) to Compose.
+- [x] Add broker health/readiness configuration without changing the PostgreSQL behavior.
+- [x] Start the services and verify that a client can connect to the broker and use the weather topic.
 
 ### 6. Weather producer: fetch and print
 
