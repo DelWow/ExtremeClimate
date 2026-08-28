@@ -22,9 +22,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 3. Database schema
 
-- [ ] Add `schema.sql` with `raw_weather`, `historical_baselines`, and `weather_daily_summary` tables, including appropriate keys, constraints, and indexes.
-- [ ] Arrange for the schema to initialize in PostgreSQL.
-- [ ] Verify all tables and constraints with manual SQL queries.
+- [x] Add `schema.sql` with `raw_weather`, `historical_baselines`, and `weather_daily_summary` tables, including appropriate keys, constraints, and indexes.
+- [x] Arrange for the schema to initialize in PostgreSQL.
+- [x] Verify all tables and constraints with manual SQL queries.
 
 ### 4. Region configuration
 
