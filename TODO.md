@@ -10,9 +10,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 1. Repository scaffolding
 
-- [ ] Create the initial application, configuration, SQL, test, DAG, and report-output directories.
-- [ ] Add `.gitignore`, `requirements.txt`, and a deliberately minimal `README.md` placeholder.
-- [ ] Verify the expected skeleton exists and Python dependencies are internally consistent.
+- [x] Create the initial application, configuration, SQL, test, DAG, and report-output directories.
+- [x] Add `.gitignore`, `requirements.txt`, and a deliberately minimal `README.md` placeholder.
+- [x] Verify the expected skeleton exists and Python dependencies are internally consistent.
 
 ### 2. Docker Compose: PostgreSQL only
 

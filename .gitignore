@@ -1,0 +1,41 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Packaging and coverage output
+build/
+dist/
+*.egg-info/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments and local secrets
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local service/runtime artifacts
+logs/
+*.log
+airflow.db
+airflow-webserver.pid
+standalone_admin_password.txt
+postgres_data/
+
+# Generated reports (retain the directory placeholder)
+reports/*
+!reports/.gitkeep
