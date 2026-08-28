@@ -1,0 +1,25 @@
+regions:
+  - id: vancouver
+    latitude: 49.2827
+    longitude: -123.1207
+    timezone: America/Vancouver
+
+  - id: calgary
+    latitude: 51.0447
+    longitude: -114.0719
+    timezone: America/Edmonton
+
+  - id: toronto
+    latitude: 43.6532
+    longitude: -79.3832
+    timezone: America/Toronto
+
+  - id: montreal
+    latitude: 45.5019
+    longitude: -73.5674
+    timezone: America/Toronto
+
+  - id: halifax
+    latitude: 44.6488
+    longitude: -63.5752
+    timezone: America/Halifax
