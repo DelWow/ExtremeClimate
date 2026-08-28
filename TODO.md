@@ -28,9 +28,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 4. Region configuration
 
-- [ ] Add `regions.yaml` with the regions and weather-query metadata used by the pipeline.
-- [ ] Add a small loader/validator script with clear failures for malformed configuration.
-- [ ] Add focused tests for valid and invalid configuration, then run them.
+- [x] Add `regions.yaml` with the regions and weather-query metadata used by the pipeline.
+- [x] Add a small loader/validator script with clear failures for malformed configuration.
+- [x] Add focused tests for valid and invalid configuration, then run them.
 
 ### 5. Docker Compose: Kafka
 
