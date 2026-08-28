@@ -16,9 +16,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 2. Docker Compose: PostgreSQL only
 
-- [ ] Add a Compose configuration containing only PostgreSQL and its persistent volume/health check.
-- [ ] Add a checked-in environment-variable example without secrets.
-- [ ] Start PostgreSQL and verify it becomes healthy and accepts a connection.
+- [x] Add a Compose configuration containing only PostgreSQL and its persistent volume/health check.
+- [x] Add a checked-in environment-variable example without secrets.
+- [x] Start PostgreSQL and verify it becomes healthy and accepts a connection.
 
 ### 3. Database schema
 
