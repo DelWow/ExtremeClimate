@@ -6,11 +6,21 @@ import math
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Protocol
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    Optional,
+    Protocol,
+)
 
 from confluent_kafka import KafkaException, Producer
 
-from extreme_climate.weather_api import WeatherEvent
+if TYPE_CHECKING:
+    from extreme_climate.weather_api import WeatherEvent
 
 
 DEFAULT_KAFKA_BOOTSTRAP_SERVERS = "127.0.0.1:29092"
@@ -103,18 +113,12 @@ class KafkaSettings:
     sasl_password: Optional[str] = field(default=None, repr=False)
     ssl_ca_location: Optional[str] = None
 
-    def producer_config(self) -> Dict[str, Any]:
-        """Return librdkafka configuration; callers must not log this mapping."""
+    def connection_config(self) -> Dict[str, Any]:
+        """Return shared broker configuration; callers must not log it."""
 
         config: Dict[str, Any] = {
             "bootstrap.servers": self.bootstrap_servers,
-            "client.id": self.client_id,
             "security.protocol": self.security_protocol,
-            "enable.idempotence": True,
-            "acks": "all",
-            "delivery.timeout.ms": max(
-                1, round(self.delivery_timeout_seconds * 1000)
-            ),
         }
         if self.sasl_mechanism is not None:
             config["sasl.mechanism"] = self.sasl_mechanism
@@ -124,6 +128,22 @@ class KafkaSettings:
             config["sasl.password"] = self.sasl_password
         if self.ssl_ca_location is not None:
             config["ssl.ca.location"] = self.ssl_ca_location
+        return config
+
+    def producer_config(self) -> Dict[str, Any]:
+        """Return librdkafka producer configuration; callers must not log it."""
+
+        config = self.connection_config()
+        config.update(
+            {
+                "client.id": self.client_id,
+                "enable.idempotence": True,
+                "acks": "all",
+                "delivery.timeout.ms": max(
+                    1, round(self.delivery_timeout_seconds * 1000)
+                ),
+            }
+        )
         return config
 
 

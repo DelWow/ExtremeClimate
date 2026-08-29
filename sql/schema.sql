@@ -42,6 +42,42 @@ CREATE TABLE IF NOT EXISTS raw_weather (
     )
 );
 
+-- Kafka positions make database writes idempotent when a message is replayed
+-- after its database transaction commits but before its offset is committed.
+ALTER TABLE raw_weather
+    ADD COLUMN IF NOT EXISTS kafka_topic TEXT,
+    ADD COLUMN IF NOT EXISTS kafka_partition INTEGER,
+    ADD COLUMN IF NOT EXISTS kafka_offset BIGINT;
+
+DO $schema$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'raw_weather'::REGCLASS
+          AND conname = 'raw_weather_kafka_position_check'
+    ) THEN
+        ALTER TABLE raw_weather
+            ADD CONSTRAINT raw_weather_kafka_position_check CHECK (
+                (kafka_topic IS NULL
+                    AND kafka_partition IS NULL
+                    AND kafka_offset IS NULL)
+                OR (kafka_topic IS NOT NULL
+                    AND kafka_topic = BTRIM(kafka_topic)
+                    AND kafka_topic <> ''
+                    AND CHAR_LENGTH(kafka_topic) <= 249
+                    AND kafka_partition IS NOT NULL
+                    AND kafka_partition >= 0
+                    AND kafka_offset IS NOT NULL
+                    AND kafka_offset >= 0)
+            );
+    END IF;
+END
+$schema$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS raw_weather_kafka_position_uidx
+    ON raw_weather (kafka_topic, kafka_partition, kafka_offset);
+
 -- Supports per-region time-window reads by validation and aggregation jobs.
 CREATE INDEX IF NOT EXISTS raw_weather_region_observed_at_idx
     ON raw_weather (region_id, observed_at DESC);
@@ -186,6 +222,8 @@ CREATE INDEX IF NOT EXISTS weather_daily_summary_date_idx
 
 COMMENT ON TABLE raw_weather IS
     'Normalized observations received from the weather event stream.';
+COMMENT ON COLUMN raw_weather.kafka_offset IS
+    'Kafka source position; unique with topic and partition for replay safety.';
 COMMENT ON TABLE historical_baselines IS
     'Daily climatological means keyed by region and calendar month/day.';
 COMMENT ON TABLE weather_daily_summary IS
