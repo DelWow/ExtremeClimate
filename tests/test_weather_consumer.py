@@ -8,6 +8,7 @@ from confluent_kafka import KafkaException
 
 from extreme_climate import weather_consumer
 from extreme_climate.weather_api import WeatherEvent
+from extreme_climate.postgres_config import PostgresConfigError
 from extreme_climate.weather_consumer import (
     ConsumerConfigError,
     EventDeserializationError,
@@ -373,17 +374,39 @@ def test_loads_manual_commit_consumer_and_database_settings() -> None:
 
 
 @pytest.mark.parametrize(
-    ("environ", "expected_error"),
+    ("environ", "error_type", "expected_error"),
     [
-        ({"KAFKA_CONSUMER_GROUP_ID": " "}, "must not be empty"),
-        ({"KAFKA_AUTO_OFFSET_RESET": "middle"}, "must be earliest"),
-        ({"KAFKA_POLL_TIMEOUT_SECONDS": "0"}, "positive finite number"),
-        ({"POSTGRES_PORT": "70000"}, "must be at most 65535"),
-        ({"POSTGRES_CONNECT_TIMEOUT_SECONDS": "1.5"}, "must be an integer"),
+        (
+            {"KAFKA_CONSUMER_GROUP_ID": " "},
+            ConsumerConfigError,
+            "must not be empty",
+        ),
+        (
+            {"KAFKA_AUTO_OFFSET_RESET": "middle"},
+            ConsumerConfigError,
+            "must be earliest",
+        ),
+        (
+            {"KAFKA_POLL_TIMEOUT_SECONDS": "0"},
+            ConsumerConfigError,
+            "positive finite number",
+        ),
+        (
+            {"POSTGRES_PORT": "70000"},
+            PostgresConfigError,
+            "must be at most 65535",
+        ),
+        (
+            {"POSTGRES_CONNECT_TIMEOUT_SECONDS": "1.5"},
+            PostgresConfigError,
+            "must be an integer",
+        ),
     ],
 )
-def test_rejects_invalid_consumer_settings(environ, expected_error: str) -> None:
-    with pytest.raises(ConsumerConfigError) as exc_info:
+def test_rejects_invalid_consumer_settings(
+    environ, error_type, expected_error: str
+) -> None:
+    with pytest.raises(error_type) as exc_info:
         load_weather_consumer_settings(environ)
 
     assert expected_error in str(exc_info.value)

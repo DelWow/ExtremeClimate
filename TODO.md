@@ -58,9 +58,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 9. Historical baseline seed script
 
-- [ ] Add a repeatable seed script for `historical_baselines` using the agreed baseline data source/fixture.
-- [ ] Make repeated runs safe and document the seed input assumptions.
-- [ ] Verify expected row counts and a representative region/date query.
+- [x] Add a repeatable seed script for `historical_baselines` using the agreed baseline data source/fixture.
+- [x] Make repeated runs safe and document the seed input assumptions.
+- [x] Verify expected row counts and a representative region/date query.
 
 ### 10. Data validation logic
 

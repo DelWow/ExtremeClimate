@@ -7,7 +7,7 @@ import json
 import math
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import (
     Any,
@@ -28,6 +28,11 @@ from extreme_climate.kafka_publisher import (
     KafkaConfigError,
     KafkaSettings,
     load_kafka_settings,
+)
+from extreme_climate.postgres_config import (
+    PostgresConfigError,
+    PostgresSettings,
+    load_postgres_settings,
 )
 
 
@@ -102,30 +107,6 @@ class KafkaPosition:
     topic: str
     partition: int
     offset: int
-
-
-@dataclass(frozen=True)
-class PostgresSettings:
-    """PostgreSQL connection settings sourced from the environment."""
-
-    host: str
-    port: int
-    dbname: str
-    user: str
-    password: str = field(repr=False)
-    connect_timeout_seconds: int = 10
-
-    def connection_kwargs(self) -> Dict[str, Any]:
-        """Return psycopg connection parameters; callers must not log them."""
-
-        return {
-            "host": self.host,
-            "port": self.port,
-            "dbname": self.dbname,
-            "user": self.user,
-            "password": self.password,
-            "connect_timeout": self.connect_timeout_seconds,
-        }
 
 
 @dataclass(frozen=True)
@@ -231,17 +212,6 @@ def _positive_float(environ: Mapping[str, str], name: str, default: float) -> fl
     return value
 
 
-def _positive_integer(environ: Mapping[str, str], name: str, default: int) -> int:
-    raw_value = environ.get(name, str(default))
-    try:
-        value = int(raw_value)
-    except ValueError as exc:
-        raise ConsumerConfigError(f"{name} must be an integer") from exc
-    if value <= 0:
-        raise ConsumerConfigError(f"{name} must be positive")
-    return value
-
-
 def load_weather_consumer_settings(
     environ: Optional[Mapping[str, str]] = None,
 ) -> WeatherConsumerSettings:
@@ -259,30 +229,9 @@ def load_weather_consumer_settings(
             "KAFKA_AUTO_OFFSET_RESET must be earliest, latest, or error"
         )
 
-    postgres_port = _positive_integer(source, "POSTGRES_PORT", 5433)
-    if postgres_port > 65535:
-        raise ConsumerConfigError("POSTGRES_PORT must be at most 65535")
-
     return WeatherConsumerSettings(
         kafka=kafka,
-        postgres=PostgresSettings(
-            host=_required_environment_text(
-                source, "POSTGRES_HOST", "127.0.0.1"
-            ),
-            port=postgres_port,
-            dbname=_required_environment_text(
-                source, "POSTGRES_DB", "extreme_climate"
-            ),
-            user=_required_environment_text(
-                source, "POSTGRES_USER", "extreme_climate"
-            ),
-            password=_required_environment_text(
-                source, "POSTGRES_PASSWORD", "extreme_climate_dev"
-            ),
-            connect_timeout_seconds=_positive_integer(
-                source, "POSTGRES_CONNECT_TIMEOUT_SECONDS", 10
-            ),
-        ),
+        postgres=load_postgres_settings(source),
         group_id=_required_environment_text(
             source, "KAFKA_CONSUMER_GROUP_ID", DEFAULT_CONSUMER_GROUP_ID
         ),
@@ -591,7 +540,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         settings = load_weather_consumer_settings()
         consume_weather_events(settings, max_messages=args.max_messages)
-    except (KafkaConfigError, ConsumerConfigError) as exc:
+    except (KafkaConfigError, ConsumerConfigError, PostgresConfigError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     except (WeatherConsumerError, WeatherPersistenceError) as exc:
