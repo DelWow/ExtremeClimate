@@ -66,6 +66,22 @@ class WeatherEvent:
             "source_payload": copy.deepcopy(self.source_payload),
         }
 
+    def to_json(self) -> str:
+        """Serialize the event as deterministic, compact JSON."""
+
+        return json.dumps(
+            self.to_dict(),
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+    def to_json_bytes(self) -> bytes:
+        """Serialize the event as UTF-8 JSON bytes for transport."""
+
+        return self.to_json().encode("utf-8")
+
 
 def _response_error(region: Region, detail: str) -> WeatherAPIError:
     return WeatherAPIError(f"Open-Meteo response for region {region.id!r}: {detail}")
