@@ -35,9 +35,11 @@ class SecondRegionFailureClient(StubWeatherClient):
 
 class StubClientContext:
     last_timeout = None
+    last_endpoint = None
 
-    def __init__(self, *, timeout):
+    def __init__(self, *, endpoint, timeout):
         type(self).last_timeout = timeout
+        type(self).last_endpoint = endpoint
         self.client = StubWeatherClient()
 
     def __enter__(self):
@@ -52,8 +54,9 @@ class FailureClientContext(StubClientContext):
         def fetch_current(self, region):
             raise WeatherAPIError(f"upstream failed for {region.id}")
 
-    def __init__(self, *, timeout):
+    def __init__(self, *, endpoint, timeout):
         type(self).last_timeout = timeout
+        type(self).last_endpoint = endpoint
         self.client = self.FailureClient()
 
 
@@ -128,7 +131,13 @@ regions:
     monkeypatch.setattr(weather_producer, "OpenMeteoClient", StubClientContext)
 
     result = weather_producer.main(
-        ["--regions", str(config_path), "--timeout", "3.25"]
+        [
+            "--regions",
+            str(config_path),
+            "--timeout",
+            "3.25",
+            "--print-only",
+        ]
     )
 
     captured = capsys.readouterr()
@@ -152,7 +161,9 @@ regions:
     )
     monkeypatch.setattr(weather_producer, "OpenMeteoClient", FailureClientContext)
 
-    result = weather_producer.main(["--regions", str(config_path)])
+    result = weather_producer.main(
+        ["--regions", str(config_path), "--print-only"]
+    )
 
     captured = capsys.readouterr()
     assert result == 1
@@ -166,10 +177,108 @@ def test_main_reports_region_config_failure(
     monkeypatch.setattr(weather_producer, "OpenMeteoClient", StubClientContext)
 
     result = weather_producer.main(
-        ["--regions", str(tmp_path / "missing-regions.yaml")]
+        [
+            "--regions",
+            str(tmp_path / "missing-regions.yaml"),
+            "--print-only",
+        ]
     )
 
     captured = capsys.readouterr()
     assert result == 2
     assert captured.out == ""
     assert "could not read configuration" in captured.err
+
+
+def test_main_rejects_empty_weather_api_endpoint(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("WEATHER_API_URL", " ")
+
+    result = weather_producer.main(["--print-only"])
+
+    captured = capsys.readouterr()
+    assert result == 2
+    assert captured.out == ""
+    assert captured.err == "error: WEATHER_API_URL must not be empty\n"
+
+
+def test_main_publishes_before_printing(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    config_path = tmp_path / "regions.yaml"
+    config_path.write_text(
+        """
+regions:
+  - id: first
+    latitude: 1
+    longitude: 2
+    timezone: UTC
+""",
+        encoding="utf-8",
+    )
+    settings = object()
+    published = []
+    monkeypatch.setenv("WEATHER_API_URL", "https://weather.example/forecast")
+    monkeypatch.setattr(weather_producer, "OpenMeteoClient", StubClientContext)
+    monkeypatch.setattr(
+        weather_producer,
+        "load_kafka_settings",
+        lambda: settings,
+    )
+
+    def record_publish(events, actual_settings):
+        published.append((tuple(events), actual_settings))
+        return 1
+
+    monkeypatch.setattr(
+        weather_producer,
+        "publish_weather_events",
+        record_publish,
+    )
+
+    result = weather_producer.main(["--regions", str(config_path)])
+
+    captured = capsys.readouterr()
+    assert result == 0
+    assert StubClientContext.last_endpoint == "https://weather.example/forecast"
+    assert published[0][1] is settings
+    assert tuple(event.region_id for event in published[0][0]) == ("first",)
+    assert json.loads(captured.out)["region_id"] == "first"
+    assert captured.err == ""
+
+
+def test_main_reports_kafka_failure_without_printing(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    config_path = tmp_path / "regions.yaml"
+    config_path.write_text(
+        """
+regions:
+  - id: first
+    latitude: 1
+    longitude: 2
+    timezone: UTC
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(weather_producer, "OpenMeteoClient", StubClientContext)
+    monkeypatch.setattr(
+        weather_producer,
+        "load_kafka_settings",
+        lambda: object(),
+    )
+
+    def fail_publish(_events, _settings):
+        raise weather_producer.KafkaPublishError("broker unavailable")
+
+    monkeypatch.setattr(
+        weather_producer,
+        "publish_weather_events",
+        fail_publish,
+    )
+
+    result = weather_producer.main(["--regions", str(config_path)])
+
+    captured = capsys.readouterr()
+    assert result == 3
+    assert captured.out == ""
+    assert captured.err == "error: broker unavailable\n"

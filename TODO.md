@@ -46,9 +46,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 7. Weather producer: publish to Kafka
 
-- [ ] Extend the producer to serialize and publish normalized weather events to the configured Kafka topic.
-- [ ] Keep external endpoints and credentials environment-configurable.
-- [ ] Add tests with a mocked Kafka producer and verify one real broker round trip.
+- [x] Extend the producer to serialize and publish normalized weather events to the configured Kafka topic.
+- [x] Keep external endpoints and credentials environment-configurable.
+- [x] Add tests with a mocked Kafka producer and verify one real broker round trip.
 
 ### 8. Kafka consumer: persist raw weather
 
