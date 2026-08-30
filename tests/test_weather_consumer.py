@@ -313,6 +313,22 @@ def test_invalid_message_does_not_touch_database_or_commit() -> None:
     assert consumer.commits == []
 
 
+def test_unconfigured_region_does_not_touch_database_or_commit() -> None:
+    connection = FakeConnection()
+    consumer = FakeConsumer()
+
+    with pytest.raises(WeatherConsumerError, match="'toronto' is not configured"):
+        process_message(
+            consumer,
+            RawWeatherStore(connection),
+            FakeMessage(),
+            allowed_region_ids={"halifax"},
+        )
+
+    assert connection.executions == []
+    assert consumer.commits == []
+
+
 def test_commit_failure_occurs_after_database_commit() -> None:
     log = []
     connection = FakeConnection(log=log)
@@ -368,6 +384,13 @@ def test_loads_manual_commit_consumer_and_database_settings() -> None:
         "user": "pipeline",
         "password": "database-secret",
         "connect_timeout": 7,
+    }
+    assert settings.region_ids == {
+        "vancouver",
+        "calgary",
+        "toronto",
+        "montreal",
+        "halifax",
     }
     assert "consumer-secret" not in repr(settings)
     assert "database-secret" not in repr(settings)

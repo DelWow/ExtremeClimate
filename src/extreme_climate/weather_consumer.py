@@ -8,11 +8,13 @@ import math
 import os
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import (
     Any,
     Callable,
+    Collection,
     Dict,
+    FrozenSet,
     Mapping,
     Optional,
     Protocol,
@@ -34,23 +36,20 @@ from extreme_climate.postgres_config import (
     PostgresSettings,
     load_postgres_settings,
 )
+from extreme_climate.region_config import (
+    DEFAULT_REGIONS_PATH,
+    RegionConfigError,
+    load_regions,
+)
+from extreme_climate.weather_validation import (
+    WeatherValidationError,
+    validate_weather_event,
+)
 
 
 DEFAULT_CONSUMER_GROUP_ID = "extreme-climate-raw-weather"
 DEFAULT_CONSUMER_CLIENT_ID = "extreme-climate-weather-consumer"
 DEFAULT_POLL_TIMEOUT_SECONDS = 1.0
-
-_EVENT_FIELDS = frozenset(
-    {
-        "region_id",
-        "observed_at",
-        "temperature_c",
-        "humidity_percent",
-        "precipitation_mm",
-        "wind_speed_mps",
-        "source_payload",
-    }
-)
 
 _INSERT_RAW_WEATHER_SQL = """
     INSERT INTO raw_weather (
@@ -119,6 +118,7 @@ class WeatherConsumerSettings:
     client_id: str
     auto_offset_reset: str
     poll_timeout_seconds: float
+    region_ids: FrozenSet[str]
 
     def consumer_config(self) -> Dict[str, Any]:
         """Return a manual-commit, at-least-once consumer configuration."""
@@ -215,7 +215,7 @@ def _positive_float(environ: Mapping[str, str], name: str, default: float) -> fl
 def load_weather_consumer_settings(
     environ: Optional[Mapping[str, str]] = None,
 ) -> WeatherConsumerSettings:
-    """Load Kafka consumer and PostgreSQL settings from the environment."""
+    """Load Kafka, PostgreSQL, and configured-region consumer settings."""
 
     source = os.environ if environ is None else environ
     kafka = load_kafka_settings(source)
@@ -228,6 +228,12 @@ def load_weather_consumer_settings(
         raise ConsumerConfigError(
             "KAFKA_AUTO_OFFSET_RESET must be earliest, latest, or error"
         )
+    regions_path = _required_environment_text(
+        source,
+        "REGIONS_CONFIG_PATH",
+        str(DEFAULT_REGIONS_PATH),
+    )
+    region_ids = frozenset(region.id for region in load_regions(regions_path))
 
     return WeatherConsumerSettings(
         kafka=kafka,
@@ -242,6 +248,7 @@ def load_weather_consumer_settings(
         poll_timeout_seconds=_positive_float(
             source, "KAFKA_POLL_TIMEOUT_SECONDS", DEFAULT_POLL_TIMEOUT_SECONDS
         ),
+        region_ids=region_ids,
     )
 
 
@@ -249,42 +256,11 @@ def _json_constant(value: str) -> None:
     raise ValueError(f"non-finite JSON number {value}")
 
 
-def _number(
-    payload: Mapping[str, Any], field_name: str, *, required: bool
-) -> Optional[float]:
-    value = payload[field_name]
-    if value is None:
-        if required:
-            raise EventDeserializationError(f"{field_name} must not be null")
-        return None
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise EventDeserializationError(f"{field_name} must be a number or null")
-    try:
-        number = float(value)
-    except (OverflowError, ValueError) as exc:
-        raise EventDeserializationError(f"{field_name} must be finite") from exc
-    if not math.isfinite(number):
-        raise EventDeserializationError(f"{field_name} must be finite")
-    return number
-
-
-def _observed_at(value: Any) -> datetime:
-    if not isinstance(value, str) or not value.endswith("Z"):
-        raise EventDeserializationError(
-            "observed_at must be an RFC 3339 UTC timestamp ending in Z"
-        )
-    try:
-        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
-    except ValueError as exc:
-        raise EventDeserializationError(
-            "observed_at must be a valid RFC 3339 timestamp"
-        ) from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise EventDeserializationError("observed_at must include a UTC offset")
-    return parsed.astimezone(timezone.utc)
-
-
-def deserialize_weather_event(value: Optional[bytes]) -> RawWeatherEvent:
+def deserialize_weather_event(
+    value: Optional[bytes],
+    *,
+    allowed_region_ids: Optional[Collection[str]] = None,
+) -> RawWeatherEvent:
     """Strictly deserialize one UTF-8 JSON weather event."""
 
     if value is None:
@@ -297,47 +273,21 @@ def deserialize_weather_event(value: Optional[bytes]) -> RawWeatherEvent:
         raise EventDeserializationError(
             "message value must be valid finite JSON encoded as UTF-8"
         ) from exc
-    if not isinstance(payload, Mapping):
-        raise EventDeserializationError("weather event must be a JSON object")
-
-    actual_fields = set(payload)
-    missing = _EVENT_FIELDS - actual_fields
-    unknown = actual_fields - _EVENT_FIELDS
-    if missing:
-        raise EventDeserializationError(
-            "weather event is missing field(s): "
-            + ", ".join(sorted(missing))
+    try:
+        validated = validate_weather_event(
+            payload,
+            allowed_region_ids=allowed_region_ids,
         )
-    if unknown:
-        raise EventDeserializationError(
-            "weather event has unknown field(s): "
-            + ", ".join(sorted(unknown))
-        )
-
-    region_id = payload["region_id"]
-    if (
-        not isinstance(region_id, str)
-        or not region_id
-        or region_id != region_id.strip()
-        or len(region_id) > 64
-    ):
-        raise EventDeserializationError(
-            "region_id must be a non-empty trimmed string of at most 64 characters"
-        )
-    source_payload = payload["source_payload"]
-    if not isinstance(source_payload, Mapping):
-        raise EventDeserializationError("source_payload must be a JSON object")
-
-    temperature_c = _number(payload, "temperature_c", required=True)
-    assert temperature_c is not None
+    except WeatherValidationError as exc:
+        raise EventDeserializationError(str(exc)) from exc
     return RawWeatherEvent(
-        region_id=region_id,
-        observed_at=_observed_at(payload["observed_at"]),
-        temperature_c=temperature_c,
-        humidity_percent=_number(payload, "humidity_percent", required=False),
-        precipitation_mm=_number(payload, "precipitation_mm", required=False),
-        wind_speed_mps=_number(payload, "wind_speed_mps", required=False),
-        source_payload=source_payload,
+        region_id=validated.region_id,
+        observed_at=validated.observed_at,
+        temperature_c=validated.temperature_c,
+        humidity_percent=validated.humidity_percent,
+        precipitation_mm=validated.precipitation_mm,
+        wind_speed_mps=validated.wind_speed_mps,
+        source_payload=validated.source_payload,
     )
 
 
@@ -436,6 +386,8 @@ def process_message(
     consumer: ConsumerProtocol,
     store: RawWeatherStore,
     message: MessageProtocol,
+    *,
+    allowed_region_ids: Optional[Collection[str]] = None,
 ) -> ProcessedMessage:
     """Persist one message transactionally, then synchronously commit offset.
 
@@ -450,7 +402,10 @@ def process_message(
 
     position = _position(message)
     try:
-        event = deserialize_weather_event(message.value())
+        event = deserialize_weather_event(
+            message.value(),
+            allowed_region_ids=allowed_region_ids,
+        )
         _check_message_key(message, event.region_id)
     except EventDeserializationError as exc:
         raise WeatherConsumerError(
@@ -498,7 +453,12 @@ def consume_weather_events(
                 raise WeatherConsumerError("Kafka poll failed") from exc
             if message is None:
                 continue
-            result = process_message(consumer, store, message)
+            result = process_message(
+                consumer,
+                store,
+                message,
+                allowed_region_ids=settings.region_ids,
+            )
             action = "inserted" if result.inserted else "duplicate"
             print(
                 f"{action} {result.position.topic}"
@@ -540,7 +500,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         settings = load_weather_consumer_settings()
         consume_weather_events(settings, max_messages=args.max_messages)
-    except (KafkaConfigError, ConsumerConfigError, PostgresConfigError) as exc:
+    except (
+        KafkaConfigError,
+        ConsumerConfigError,
+        PostgresConfigError,
+        RegionConfigError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     except (WeatherConsumerError, WeatherPersistenceError) as exc:

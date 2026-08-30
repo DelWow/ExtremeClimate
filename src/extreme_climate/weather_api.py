@@ -12,6 +12,11 @@ from typing import Any, Dict, Mapping, Optional
 import requests
 
 from extreme_climate.region_config import Region
+from extreme_climate.weather_validation import (
+    WeatherValidationError,
+    format_utc_timestamp,
+    validate_weather_event,
+)
 
 
 OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -52,6 +57,30 @@ class WeatherEvent:
     precipitation_mm: Optional[float]
     wind_speed_mps: Optional[float]
     source_payload: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        """Enforce the shared normalized-event contract at construction."""
+
+        validated = validate_weather_event(
+            {
+                "region_id": self.region_id,
+                "observed_at": self.observed_at,
+                "temperature_c": self.temperature_c,
+                "humidity_percent": self.humidity_percent,
+                "precipitation_mm": self.precipitation_mm,
+                "wind_speed_mps": self.wind_speed_mps,
+                "source_payload": self.source_payload,
+            }
+        )
+        object.__setattr__(self, "region_id", validated.region_id)
+        object.__setattr__(
+            self, "observed_at", format_utc_timestamp(validated.observed_at)
+        )
+        object.__setattr__(self, "temperature_c", validated.temperature_c)
+        object.__setattr__(self, "humidity_percent", validated.humidity_percent)
+        object.__setattr__(self, "precipitation_mm", validated.precipitation_mm)
+        object.__setattr__(self, "wind_speed_mps", validated.wind_speed_mps)
+        object.__setattr__(self, "source_payload", validated.source_payload)
 
     def to_dict(self) -> Dict[str, Any]:
         """Return a detached, JSON-compatible event mapping."""
@@ -267,15 +296,18 @@ class OpenMeteoClient:
 
         assert observed_seconds is not None
         assert temperature_c is not None
-        return WeatherEvent(
-            region_id=region.id,
-            observed_at=_utc_timestamp(observed_seconds, region),
-            temperature_c=temperature_c,
-            humidity_percent=humidity_percent,
-            precipitation_mm=precipitation_mm,
-            wind_speed_mps=wind_speed_mps,
-            source_payload={
-                "provider": "open-meteo",
-                "response": copy.deepcopy(payload),
-            },
-        )
+        try:
+            return WeatherEvent(
+                region_id=region.id,
+                observed_at=_utc_timestamp(observed_seconds, region),
+                temperature_c=temperature_c,
+                humidity_percent=humidity_percent,
+                precipitation_mm=precipitation_mm,
+                wind_speed_mps=wind_speed_mps,
+                source_payload={
+                    "provider": "open-meteo",
+                    "response": copy.deepcopy(payload),
+                },
+            )
+        except WeatherValidationError as exc:
+            raise _response_error(region, str(exc)) from exc

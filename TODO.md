@@ -64,9 +64,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 10. Data validation logic
 
-- [ ] Add reusable validation for required fields, timestamps, region identifiers, and plausible weather-value ranges.
-- [ ] Add unit tests for accepted records and each rejection category.
-- [ ] Run the focused unit test suite.
+- [x] Add reusable validation for required fields, timestamps, region identifiers, and plausible weather-value ranges.
+- [x] Add unit tests for accepted records and each rejection category.
+- [x] Run the focused unit test suite.
 
 ### 11. Daily transformation and aggregation
 
