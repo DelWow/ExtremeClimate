@@ -52,15 +52,15 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 8. Kafka consumer: persist raw weather
 
-- [ ] Add a consumer that deserializes weather events and inserts them into `raw_weather` safely.
-- [ ] Define offset/commit and duplicate-event behavior explicitly.
-- [ ] Add focused tests and verify an event can travel from Kafka into PostgreSQL.
+- [x] Add a consumer that deserializes weather events and inserts them into `raw_weather` safely.
+- [x] Define offset/commit and duplicate-event behavior explicitly.
+- [x] Add focused tests and verify an event can travel from Kafka into PostgreSQL.
 
 ### 9. Historical baseline seed script
 
-- [ ] Add a repeatable seed script for `historical_baselines` using the agreed baseline data source/fixture.
-- [ ] Make repeated runs safe and document the seed input assumptions.
-- [ ] Verify expected row counts and a representative region/date query.
+- [x] Add a repeatable seed script for `historical_baselines` using the agreed baseline data source/fixture.
+- [x] Make repeated runs safe and document the seed input assumptions.
+- [x] Verify expected row counts and a representative region/date query.
 
 ### 10. Data validation logic
 
