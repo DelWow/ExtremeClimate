@@ -76,9 +76,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 12. Anomaly detection
 
-- [ ] Add reusable logic that compares daily summaries with historical baselines and records/labels anomalies using explicit thresholds.
-- [ ] Add unit tests for normal, boundary, anomalous, and missing-baseline cases.
-- [ ] Run the focused unit test suite.
+- [x] Add reusable logic that compares daily summaries with historical baselines and records/labels anomalies using explicit thresholds.
+- [x] Add unit tests for normal, boundary, anomalous, and missing-baseline cases.
+- [x] Run the focused unit test suite.
 
 ### 13. Excel report: basic output
 
