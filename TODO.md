@@ -70,9 +70,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 11. Daily transformation and aggregation
 
-- [ ] Add reusable logic that transforms valid `raw_weather` rows into `weather_daily_summary` records.
-- [ ] Define grouping, units, missing-data handling, and idempotent writes.
-- [ ] Add unit tests for aggregation and edge cases, then run them.
+- [x] Add reusable logic that transforms valid `raw_weather` rows into `weather_daily_summary` records.
+- [x] Define grouping, units, missing-data handling, and idempotent writes.
+- [x] Add unit tests for aggregation and edge cases, then run them.
 
 ### 12. Anomaly detection
 
