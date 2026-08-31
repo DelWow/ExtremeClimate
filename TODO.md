@@ -106,9 +106,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 17. End-to-end pipeline test
 
-- [ ] Run the complete local stack and execute one controlled pipeline cycle from weather event through Excel report.
-- [ ] Verify Kafka delivery, database records at each stage, anomaly output, Airflow task success, and report contents.
-- [ ] Record the reproducible commands and expected verification results.
+- [x] Run the complete local stack and execute one controlled pipeline cycle from weather event through Excel report.
+- [x] Verify Kafka delivery, database records at each stage, anomaly output, Airflow task success, and report contents.
+- [x] Record the reproducible commands and expected verification results.
 
 ### 18. README documentation
 
