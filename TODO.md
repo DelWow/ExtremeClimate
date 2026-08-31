@@ -94,9 +94,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 15. Docker Compose: Airflow
 
-- [ ] Add the minimum Airflow services, metadata initialization, volumes, and health checks needed for local orchestration.
-- [ ] Add an empty/smoke-test DAG without wiring pipeline behavior yet.
-- [ ] Start Airflow and verify the UI/scheduler are healthy and the smoke DAG loads without import errors.
+- [x] Add the minimum Airflow services, metadata initialization, volumes, and health checks needed for local orchestration.
+- [x] Add an empty/smoke-test DAG without wiring pipeline behavior yet.
+- [x] Start Airflow and verify the UI/scheduler are healthy and the smoke DAG loads without import errors.
 
 ### 16. Airflow pipeline DAG
 
