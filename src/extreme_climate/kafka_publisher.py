@@ -29,9 +29,7 @@ DEFAULT_KAFKA_CLIENT_ID = "extreme-climate-weather-producer"
 DEFAULT_KAFKA_DELIVERY_TIMEOUT_SECONDS = 30.0
 
 _TOPIC_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
-_SECURITY_PROTOCOLS = frozenset(
-    {"PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"}
-)
+_SECURITY_PROTOCOLS = frozenset({"PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"})
 
 
 class KafkaConfigError(ValueError):
@@ -52,22 +50,17 @@ class ProducerProtocol(Protocol):
         value: bytes,
         key: bytes,
         on_delivery: Callable[[Any, Any], None],
-    ) -> None:
-        ...
+    ) -> None: ...
 
-    def poll(self, timeout: float) -> int:
-        ...
+    def poll(self, timeout: float) -> int: ...
 
-    def flush(self, timeout: float) -> int:
-        ...
+    def flush(self, timeout: float) -> int: ...
 
 
 ProducerFactory = Callable[[Mapping[str, Any]], ProducerProtocol]
 
 
-def _required_text(
-    environ: Mapping[str, str], name: str, default: str
-) -> str:
+def _required_text(environ: Mapping[str, str], name: str, default: str) -> str:
     value = environ.get(name, default).strip()
     if not value:
         raise KafkaConfigError(f"{name} must not be empty")
@@ -198,15 +191,11 @@ def load_kafka_settings(
                 f"when KAFKA_SECURITY_PROTOCOL is {security_protocol}"
             )
     elif any((sasl_mechanism, sasl_username, sasl_password)):
-        raise KafkaConfigError(
-            "KAFKA_SASL_* settings require a SASL security protocol"
-        )
+        raise KafkaConfigError("KAFKA_SASL_* settings require a SASL security protocol")
 
     ssl_ca_location = _optional_text(source, "KAFKA_SSL_CA_LOCATION")
     if ssl_ca_location is not None and security_protocol not in {"SSL", "SASL_SSL"}:
-        raise KafkaConfigError(
-            "KAFKA_SSL_CA_LOCATION requires SSL or SASL_SSL"
-        )
+        raise KafkaConfigError("KAFKA_SSL_CA_LOCATION requires SSL or SASL_SSL")
 
     return KafkaSettings(
         bootstrap_servers=bootstrap_servers,
@@ -239,9 +228,7 @@ class KafkaWeatherPublisher:
         try:
             self._producer = producer_factory(settings.producer_config())
         except KafkaException as exc:
-            raise KafkaPublishError(
-                "could not initialize the Kafka producer"
-            ) from exc
+            raise KafkaPublishError("could not initialize the Kafka producer") from exc
 
     def publish(self, events: Iterable[WeatherEvent]) -> int:
         """Publish all events and wait for broker delivery acknowledgements."""
@@ -270,9 +257,7 @@ class KafkaWeatherPublisher:
             ) from exc
 
         try:
-            remaining = self._producer.flush(
-                self._settings.delivery_timeout_seconds
-            )
+            remaining = self._producer.flush(self._settings.delivery_timeout_seconds)
         except KafkaException as exc:
             raise KafkaPublishError(
                 f"Kafka flush failed: {_safe_error_detail(exc)}"
@@ -284,8 +269,7 @@ class KafkaWeatherPublisher:
             )
         if delivery_errors:
             raise KafkaPublishError(
-                f"Kafka rejected {len(delivery_errors)} event(s): "
-                f"{delivery_errors[0]}"
+                f"Kafka rejected {len(delivery_errors)} event(s): {delivery_errors[0]}"
             )
         return count
 

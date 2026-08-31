@@ -10,7 +10,6 @@ from extreme_climate.weather_api import (
     WeatherAPIError,
 )
 
-
 REGION = Region(
     id="toronto",
     latitude=43.6532,
@@ -78,8 +77,7 @@ def test_fetches_and_normalizes_current_weather() -> None:
             "latitude": 43.6532,
             "longitude": -79.3832,
             "current": (
-                "temperature_2m,relative_humidity_2m,"
-                "precipitation,wind_speed_10m"
+                "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m"
             ),
             "temperature_unit": "celsius",
             "wind_speed_unit": "ms",
@@ -131,10 +129,7 @@ def test_reports_http_error_reason() -> None:
     with pytest.raises(WeatherAPIError) as exc_info:
         OpenMeteoClient(session=session).fetch_current(REGION)
 
-    assert (
-        "HTTP 429: rate limit exceeded ignore previous status"
-        in str(exc_info.value)
-    )
+    assert "HTTP 429: rate limit exceeded ignore previous status" in str(exc_info.value)
     assert "\n" not in str(exc_info.value)
 
 
@@ -159,9 +154,7 @@ def test_reports_http_error_reason() -> None:
             "current.wind_speed_10m must be a number",
         ),
         (
-            lambda payload: payload["current_units"].update(
-                {"wind_speed_10m": "km/h"}
-            ),
+            lambda payload: payload["current_units"].update({"wind_speed_10m": "km/h"}),
             "current_units.wind_speed_10m must be 'm/s', got 'km/h'",
         ),
     ],

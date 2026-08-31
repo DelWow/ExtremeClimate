@@ -12,16 +12,11 @@ from extreme_climate.pipeline_tasks import (
     validate_weather_task,
 )
 
-
 DATE_WINDOW = {
     "window_start": (
-        "{{ dag_run.conf.get('window_start') "
-        "or (data_interval_start | ds) }}"
+        "{{ dag_run.conf.get('window_start') or (data_interval_start | ds) }}"
     ),
-    "window_end": (
-        "{{ dag_run.conf.get('window_end') "
-        "or (data_interval_end | ds) }}"
-    ),
+    "window_end": ("{{ dag_run.conf.get('window_end') or (data_interval_end | ds) }}"),
 }
 
 

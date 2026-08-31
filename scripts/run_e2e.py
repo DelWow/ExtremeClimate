@@ -38,13 +38,12 @@ from extreme_climate.weather_consumer import (
     process_message,
 )
 
-
 DAG_ID = "extreme_climate_pipeline"
 E2E_REGION_ID = "toronto"
 E2E_DATE = date(2099, 1, 15)
 E2E_END_DATE = E2E_DATE + timedelta(days=1)
-REPORT_PATH = PROJECT_ROOT / "reports" / (
-    f"extreme_climate_daily_{E2E_DATE.isoformat()}.xlsx"
+REPORT_PATH = (
+    PROJECT_ROOT / "reports" / (f"extreme_climate_daily_{E2E_DATE.isoformat()}.xlsx")
 )
 EXPECTED_TASK_IDS = (
     "validate_raw_weather",
@@ -321,10 +320,7 @@ def _verify_report(summary: Mapping[str, Any]) -> Mapping[str, Any]:
             "is_anomaly": row[9],
             "anomaly_status": row[10],
         }
-        expected = {
-            key: summary[key]
-            for key in report_result
-        }
+        expected = {key: summary[key] for key in report_result}
         if report_result != expected:
             raise EndToEndError(
                 f"report row does not match PostgreSQL: {report_result}"
@@ -337,6 +333,8 @@ def _verify_report(summary: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def run() -> Mapping[str, Any]:
+    """Execute every local pipeline stage and return verified result metadata."""
+
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_marker = f"{timestamp}_{uuid.uuid4().hex[:8]}"
     topic = f"weather_e2e_{run_marker.lower()}"
@@ -379,9 +377,11 @@ def run() -> Mapping[str, Any]:
 
 
 def main() -> int:
+    """Run the end-to-end check as a command-line program."""
+
     try:
         result = run()
-    except (EndToEndError, KafkaException, psycopg.Error) as exc:
+    except (EndToEndError, KafkaException, OSError, ValueError, psycopg.Error) as exc:
         print(f"end-to-end verification failed: {exc}", file=sys.stderr)
         return 1
     except subprocess.CalledProcessError as exc:

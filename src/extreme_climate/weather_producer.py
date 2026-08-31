@@ -16,7 +16,6 @@ from extreme_climate.kafka_publisher import (
     load_kafka_settings,
     publish_weather_events,
 )
-
 from extreme_climate.region_config import (
     DEFAULT_REGIONS_PATH,
     Region,

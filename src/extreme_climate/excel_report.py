@@ -18,7 +18,6 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
-
 DEFAULT_REPORT_PATH = Path("reports/extreme_climate_daily.xlsx")
 WORKSHEET_TITLE = "Daily Weather"
 CHART_TITLE = "Mean Temperature Trend"
@@ -120,13 +119,15 @@ class ReportResult:
 
 
 class CursorProtocol(Protocol):
-    def fetchall(self) -> Sequence[Sequence[Any]]:
-        ...
+    """Database cursor operations used while loading report rows."""
+
+    def fetchall(self) -> Sequence[Sequence[Any]]: ...
 
 
 class ConnectionProtocol(Protocol):
-    def execute(self, query: str, params: Sequence[Any]) -> CursorProtocol:
-        ...
+    """Database connection operations required by report generation."""
+
+    def execute(self, query: str, params: Sequence[Any]) -> CursorProtocol: ...
 
 
 def _validate_date_range(start_date: date, end_date: date) -> None:

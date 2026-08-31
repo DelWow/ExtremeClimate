@@ -1,0 +1,14 @@
+target-version = "py39"
+line-length = 88
+src = ["src"]
+
+[lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "ANN"]
+ignore = ["ANN401"]
+
+[lint.per-file-ignores]
+"scripts/run_e2e.py" = ["E402"]
+"tests/**/*.py" = ["ANN", "B008"]
+
+[format]
+docstring-code-format = true

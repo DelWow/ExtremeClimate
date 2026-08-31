@@ -34,7 +34,6 @@ from extreme_climate.region_config import (
     load_regions,
 )
 
-
 DEFAULT_BASELINE_FIXTURE_PATH = Path("data/historical_baseline_monthly.csv")
 
 _FIXTURE_FIELDS = (
@@ -118,33 +117,27 @@ class SeedResult:
 
 
 class CursorProtocol(Protocol):
-    def __enter__(self) -> "CursorProtocol":
-        ...
+    """Database cursor operations used by baseline seeding."""
 
-    def __exit__(self, *args: Any) -> None:
-        ...
+    def __enter__(self) -> "CursorProtocol": ...
 
-    def executemany(
-        self, query: str, params_seq: Iterable[Sequence[Any]]
-    ) -> None:
-        ...
+    def __exit__(self, *args: Any) -> None: ...
 
-    def execute(self, query: str, params: Sequence[Any]) -> Any:
-        ...
+    def executemany(self, query: str, params_seq: Iterable[Sequence[Any]]) -> None: ...
 
-    def fetchone(self) -> Optional[Tuple[Any, ...]]:
-        ...
+    def execute(self, query: str, params: Sequence[Any]) -> Any: ...
+
+    def fetchone(self) -> Optional[Tuple[Any, ...]]: ...
 
 
 class ConnectionProtocol(Protocol):
-    def transaction(self) -> Any:
-        ...
+    """Database connection operations required by baseline seeding."""
 
-    def cursor(self) -> CursorProtocol:
-        ...
+    def transaction(self) -> Any: ...
 
-    def close(self) -> None:
-        ...
+    def cursor(self) -> CursorProtocol: ...
+
+    def close(self) -> None: ...
 
 
 ConnectionFactory = Callable[..., ConnectionProtocol]
@@ -219,17 +212,13 @@ def _monthly_baseline(
         line=line,
     )
     if temperature < Decimal("-273.15"):
-        raise _fixture_error(
-            path, line, "mean_temperature_c must be at least -273.15"
-        )
+        raise _fixture_error(path, line, "mean_temperature_c must be at least -273.15")
     if not Decimal("0") <= humidity <= Decimal("100"):
         raise _fixture_error(
             path, line, "mean_humidity_percent must be between 0 and 100"
         )
     if precipitation < Decimal("0"):
-        raise _fixture_error(
-            path, line, "mean_precipitation_mm must be non-negative"
-        )
+        raise _fixture_error(path, line, "mean_precipitation_mm must be non-negative")
     return MonthlyBaseline(
         region_id=region_id,
         month=month,
@@ -287,9 +276,7 @@ def load_monthly_baselines(
         ) from exc
 
     expected_keys = {
-        (region_id, month)
-        for region_id in configured_ids
-        for month in range(1, 13)
+        (region_id, month) for region_id in configured_ids for month in range(1, 13)
     }
     missing = expected_keys - set(by_key)
     if missing:
@@ -428,10 +415,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    print(
-        f"Seeded {result.stored_rows} historical baseline row(s) "
-        f"from {args.fixture}"
-    )
+    print(f"Seeded {result.stored_rows} historical baseline row(s) from {args.fixture}")
     return 0
 
 

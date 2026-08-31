@@ -18,7 +18,6 @@ from extreme_climate.weather_validation import (
     validate_weather_event,
 )
 
-
 OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 10.0
 
@@ -157,7 +156,9 @@ def _utc_timestamp(unix_seconds: float, region: Region) -> str:
     try:
         observed_at = datetime.fromtimestamp(unix_seconds, tz=timezone.utc)
     except (OSError, OverflowError, ValueError) as exc:
-        raise _response_error(region, "current.time is outside the supported range") from exc
+        raise _response_error(
+            region, "current.time is outside the supported range"
+        ) from exc
     return observed_at.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 

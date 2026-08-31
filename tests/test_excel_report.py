@@ -40,8 +40,7 @@ def _report_row(**changes) -> WeatherReportRow:
         is_anomaly=True,
         anomaly_status="anomaly",
         anomaly_details_json=(
-            '{"anomalies":{"mean_temperature_c":{"deviation":5.25}},'
-            '"status":"anomaly"}'
+            '{"anomalies":{"mean_temperature_c":{"deviation":5.25}},"status":"anomaly"}'
         ),
     )
     return replace(row, **changes)
@@ -136,8 +135,10 @@ def test_rows_are_sorted_by_region_then_date() -> None:
     try:
         worksheet = workbook[WORKSHEET_TITLE]
         assert [
-            (worksheet.cell(row=index, column=1).value,
-             worksheet.cell(row=index, column=2).value)
+            (
+                worksheet.cell(row=index, column=1).value,
+                worksheet.cell(row=index, column=2).value,
+            )
             for index in range(2, 5)
         ] == [
             ("halifax", date(2026, 8, 30)),
@@ -252,9 +253,7 @@ def test_temperature_chart_has_one_dated_series_per_region() -> None:
 
 
 def test_omits_temperature_chart_when_all_temperature_values_are_missing() -> None:
-    workbook = build_weather_report_workbook(
-        [_report_row(mean_temperature_c=None)]
-    )
+    workbook = build_weather_report_workbook([_report_row(mean_temperature_c=None)])
     try:
         assert workbook[WORKSHEET_TITLE]._charts == []
     finally:
@@ -360,9 +359,7 @@ def test_rejects_invalid_anomaly_details(
     anomaly_details,
     expected_error: str,
 ) -> None:
-    connection = FakeConnection(
-        rows=[_database_row(anomaly_details=anomaly_details)]
-    )
+    connection = FakeConnection(rows=[_database_row(anomaly_details=anomaly_details)])
 
     with pytest.raises(ReportInputError, match=expected_error):
         load_weather_report_rows(
@@ -444,9 +441,7 @@ def test_rejects_invalid_report_date_range(
 
 
 def test_wraps_database_read_failure() -> None:
-    connection = FakeConnection(
-        error=psycopg.OperationalError("database unavailable")
-    )
+    connection = FakeConnection(error=psycopg.OperationalError("database unavailable"))
 
     with pytest.raises(ReportGenerationError, match="could not read"):
         load_weather_report_rows(

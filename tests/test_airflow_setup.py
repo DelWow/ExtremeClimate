@@ -6,7 +6,6 @@ from types import ModuleType
 
 import yaml
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 COMPOSE_PATH = PROJECT_ROOT / "docker-compose.yml"
 PIPELINE_DAG_PATH = PROJECT_ROOT / "dags" / "extreme_climate_pipeline.py"
@@ -30,9 +29,10 @@ def test_compose_adds_only_minimum_local_executor_airflow_services() -> None:
     assert services["airflow-webserver"]["image"] == (
         "${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.5}"
     )
-    assert services["airflow-scheduler"]["environment"][
-        "AIRFLOW__CORE__EXECUTOR"
-    ] == "LocalExecutor"
+    assert (
+        services["airflow-scheduler"]["environment"]["AIRFLOW__CORE__EXECUTOR"]
+        == "LocalExecutor"
+    )
     assert "airflow-worker" not in services
     assert "redis" not in services
     assert "triggerer" not in services
@@ -45,9 +45,7 @@ def test_airflow_metadata_database_is_private_and_persistent() -> None:
 
     assert database["image"] == "postgres:16-alpine"
     assert "ports" not in database
-    assert database["volumes"] == [
-        "airflow_postgres_data:/var/lib/postgresql/data"
-    ]
+    assert database["volumes"] == ["airflow_postgres_data:/var/lib/postgresql/data"]
     assert database["healthcheck"]["test"] == [
         "CMD-SHELL",
         'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"',
@@ -69,9 +67,7 @@ def test_airflow_initialization_migrates_database_and_creates_admin() -> None:
     assert init["environment"]["_AIRFLOW_WWW_USER_USERNAME"] == (
         "${AIRFLOW_ADMIN_USERNAME:-airflow}"
     )
-    assert init["depends_on"]["airflow-postgres"]["condition"] == (
-        "service_healthy"
-    )
+    assert init["depends_on"]["airflow-postgres"]["condition"] == ("service_healthy")
 
 
 def test_airflow_runtime_services_wait_for_successful_initialization() -> None:
@@ -85,9 +81,7 @@ def test_airflow_runtime_services_wait_for_successful_initialization() -> None:
         assert service["depends_on"]["airflow-init"]["condition"] == (
             "service_completed_successfully"
         )
-        assert service["depends_on"]["postgres"]["condition"] == (
-            "service_healthy"
-        )
+        assert service["depends_on"]["postgres"]["condition"] == ("service_healthy")
         assert service["restart"] == "unless-stopped"
         assert service["environment"]["AIRFLOW__CORE__LOAD_EXAMPLES"] == "false"
 
@@ -129,9 +123,12 @@ def test_airflow_webserver_and_scheduler_have_component_healthchecks() -> None:
         "--fail",
         "http://localhost:8080/health",
     ]
-    assert services["airflow-scheduler"]["environment"][
-        "AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK"
-    ] == "true"
+    assert (
+        services["airflow-scheduler"]["environment"][
+            "AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK"
+        ]
+        == "true"
+    )
     assert services["airflow-scheduler"]["healthcheck"]["test"] == [
         "CMD",
         "curl",
@@ -164,9 +161,7 @@ def test_pipeline_dag_imports_with_ordered_task_structure(monkeypatch) -> None:
             tasks.append(self)
 
         def __rshift__(self, other):
-            dependencies.append(
-                (self.kwargs["task_id"], other.kwargs["task_id"])
-            )
+            dependencies.append((self.kwargs["task_id"], other.kwargs["task_id"]))
             return other
 
     airflow_module = ModuleType("airflow")
@@ -215,12 +210,10 @@ def test_pipeline_dag_imports_with_ordered_task_structure(monkeypatch) -> None:
         task.kwargs["op_kwargs"]
         == {
             "window_start": (
-                "{{ dag_run.conf.get('window_start') "
-                "or (data_interval_start | ds) }}"
+                "{{ dag_run.conf.get('window_start') or (data_interval_start | ds) }}"
             ),
             "window_end": (
-                "{{ dag_run.conf.get('window_end') "
-                "or (data_interval_end | ds) }}"
+                "{{ dag_run.conf.get('window_end') or (data_interval_end | ds) }}"
             ),
         }
         for task in tasks

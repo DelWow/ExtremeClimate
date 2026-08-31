@@ -169,6 +169,8 @@ broker.
 Run the unit and DAG-structure tests with:
 
 ```sh
+.venv/bin/ruff format --check .
+.venv/bin/ruff check .
 .venv/bin/pytest -q
 ```
 

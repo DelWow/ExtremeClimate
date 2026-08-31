@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import (
     Any,
     Dict,
@@ -33,7 +33,6 @@ from extreme_climate.weather_validation import (
     MIN_TEMPERATURE_C,
     MIN_WIND_SPEED_MPS,
 )
-
 
 SUMMARY_QUANTUM = Decimal("0.01")
 
@@ -132,32 +131,29 @@ class DailyWeatherSummary:
 
 
 class CursorProtocol(Protocol):
-    def __enter__(self) -> "CursorProtocol":
-        ...
+    """Database cursor operations used by daily transformation."""
 
-    def __exit__(self, *args: Any) -> None:
-        ...
+    def __enter__(self) -> "CursorProtocol": ...
+
+    def __exit__(self, *args: Any) -> None: ...
 
     def executemany(
         self,
         query: str,
         params_seq: Iterable[Sequence[Any]],
-    ) -> None:
-        ...
+    ) -> None: ...
 
-    def fetchall(self) -> Sequence[Sequence[Any]]:
-        ...
+    def fetchall(self) -> Sequence[Sequence[Any]]: ...
 
 
 class ConnectionProtocol(Protocol):
-    def transaction(self) -> Any:
-        ...
+    """Database connection operations required by daily transformation."""
 
-    def cursor(self) -> CursorProtocol:
-        ...
+    def transaction(self) -> Any: ...
 
-    def execute(self, query: str, params: Sequence[Any]) -> CursorProtocol:
-        ...
+    def cursor(self) -> CursorProtocol: ...
+
+    def execute(self, query: str, params: Sequence[Any]) -> CursorProtocol: ...
 
 
 def _decimal(
@@ -302,9 +298,7 @@ def aggregate_daily_weather(
         local_date = observation.observed_at.astimezone(
             timezones[observation.region_id]
         ).date()
-        grouped.setdefault((observation.region_id, local_date), []).append(
-            observation
-        )
+        grouped.setdefault((observation.region_id, local_date), []).append(observation)
 
     summaries = []
     for (region_id, summary_date), group in sorted(grouped.items()):

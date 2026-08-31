@@ -35,18 +35,14 @@ class PostgresSettings:
         }
 
 
-def _required_text(
-    environ: Mapping[str, str], name: str, default: str
-) -> str:
+def _required_text(environ: Mapping[str, str], name: str, default: str) -> str:
     value = environ.get(name, default).strip()
     if not value:
         raise PostgresConfigError(f"{name} must not be empty")
     return value
 
 
-def _positive_integer(
-    environ: Mapping[str, str], name: str, default: int
-) -> int:
+def _positive_integer(environ: Mapping[str, str], name: str, default: int) -> int:
     raw_value = environ.get(name, str(default))
     try:
         value = int(raw_value)
