@@ -82,9 +82,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 13. Excel report: basic output
 
-- [ ] Add a report generator that creates a single-sheet Excel report from daily summaries and anomaly results.
-- [ ] Add unit tests for workbook creation, columns, values, and deterministic output structure.
-- [ ] Run the focused tests and open/read the generated workbook programmatically.
+- [x] Add a report generator that creates a single-sheet Excel report from daily summaries and anomaly results.
+- [x] Add unit tests for workbook creation, columns, values, and deterministic output structure.
+- [x] Run the focused tests and open/read the generated workbook programmatically.
 
 ### 14. Excel report: chart and formatting
 
