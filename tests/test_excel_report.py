@@ -9,6 +9,11 @@ import pytest
 from openpyxl import load_workbook
 
 from extreme_climate.excel_report import (
+    ANOMALY_FILL_COLOR,
+    ANOMALY_FONT_COLOR,
+    CHART_TITLE,
+    HEADER_FILL_COLOR,
+    HEADER_FONT_COLOR,
     REPORT_HEADERS,
     WORKSHEET_TITLE,
     ReportGenerationError,
@@ -115,7 +120,7 @@ def test_builds_one_sheet_with_fixed_headers_and_native_cell_types() -> None:
                 '"status":"anomaly"}'
             ),
         )
-        assert worksheet._charts == []
+        assert len(worksheet._charts) == 1
     finally:
         workbook.close()
 
@@ -149,6 +154,109 @@ def test_empty_input_produces_header_only_workbook() -> None:
         worksheet = workbook[WORKSHEET_TITLE]
         assert worksheet.max_row == 1
         assert tuple(cell.value for cell in worksheet[1]) == REPORT_HEADERS
+        assert worksheet._charts == []
+        assert list(worksheet.conditional_formatting) == []
+    finally:
+        workbook.close()
+
+
+def test_applies_readable_header_and_data_formatting() -> None:
+    workbook = build_weather_report_workbook([_report_row()])
+    try:
+        worksheet = workbook[WORKSHEET_TITLE]
+        assert worksheet.freeze_panes == "A2"
+        assert worksheet.auto_filter.ref == "A1:L2"
+        assert worksheet.sheet_view.showGridLines is False
+        assert worksheet.page_setup.orientation == "landscape"
+        assert worksheet.print_title_rows == "$1:$1"
+
+        assert worksheet["A1"].fill.fgColor.rgb == HEADER_FILL_COLOR
+        assert worksheet["A1"].font.color.rgb == HEADER_FONT_COLOR
+        assert worksheet["A1"].font.bold is True
+        assert worksheet["A1"].alignment.wrap_text is True
+        assert worksheet.row_dimensions[1].height == 34
+        assert worksheet.column_dimensions["A"].width == 16
+        assert worksheet.column_dimensions["D"].width == 23
+        assert worksheet.column_dimensions["L"].width == 60
+
+        assert worksheet["B2"].number_format == "yyyy-mm-dd"
+        assert worksheet["C2"].number_format == "0"
+        assert all(
+            worksheet.cell(row=2, column=column).number_format == "0.00"
+            for column in range(4, 10)
+        )
+        assert worksheet["L2"].alignment.wrap_text is True
+    finally:
+        workbook.close()
+
+
+def test_adds_whole_row_anomaly_conditional_formatting() -> None:
+    workbook = build_weather_report_workbook(
+        [
+            _report_row(is_anomaly=False, anomaly_status="normal"),
+            _report_row(
+                summary_date=date(2026, 8, 31),
+                is_anomaly=True,
+            ),
+        ]
+    )
+    try:
+        worksheet = workbook[WORKSHEET_TITLE]
+        entries = list(worksheet.conditional_formatting)
+        assert len(entries) == 1
+        assert str(entries[0].sqref) == "A2:L3"
+        rules = list(worksheet.conditional_formatting[entries[0]])
+        assert len(rules) == 1
+        rule = rules[0]
+        assert rule.type == "expression"
+        assert rule.formula == ["$J2=TRUE"]
+        assert rule.stopIfTrue is True
+        assert rule.dxf.fill.fgColor.rgb == ANOMALY_FILL_COLOR
+        assert rule.dxf.font.color.rgb == ANOMALY_FONT_COLOR
+    finally:
+        workbook.close()
+
+
+def test_temperature_chart_has_one_dated_series_per_region() -> None:
+    rows = [
+        _report_row(region_id="vancouver", summary_date=date(2026, 8, 31)),
+        _report_row(region_id="toronto", summary_date=date(2026, 8, 31)),
+        _report_row(region_id="halifax", mean_temperature_c=None),
+        _report_row(region_id="vancouver"),
+        _report_row(region_id="toronto"),
+    ]
+
+    workbook = build_weather_report_workbook(rows)
+    try:
+        worksheet = workbook[WORKSHEET_TITLE]
+        assert len(worksheet._charts) == 1
+        chart = worksheet._charts[0]
+        assert chart.title.tx.rich.p[0].r[0].t == CHART_TITLE
+        assert chart.anchor == "N2"
+        assert chart.display_blanks == "gap"
+        assert [series.tx.v for series in chart.series] == [
+            "toronto",
+            "vancouver",
+        ]
+        assert [series.val.numRef.f for series in chart.series] == [
+            "'Daily Weather'!$D$3:$D$4",
+            "'Daily Weather'!$D$5:$D$6",
+        ]
+        assert [series.cat.numRef.f for series in chart.series] == [
+            "'Daily Weather'!$B$3:$B$4",
+            "'Daily Weather'!$B$5:$B$6",
+        ]
+        assert all(series.marker.symbol == "circle" for series in chart.series)
+    finally:
+        workbook.close()
+
+
+def test_omits_temperature_chart_when_all_temperature_values_are_missing() -> None:
+    workbook = build_weather_report_workbook(
+        [_report_row(mean_temperature_c=None)]
+    )
+    try:
+        assert workbook[WORKSHEET_TITLE]._charts == []
     finally:
         workbook.close()
 
@@ -285,6 +393,14 @@ def test_writes_and_reopens_generated_workbook_programmatically(
         assert worksheet["D2"].value == 21.25
         assert worksheet["J2"].value is True
         assert worksheet["K2"].value == "anomaly"
+        assert worksheet["A1"].fill.fgColor.rgb == HEADER_FILL_COLOR
+        assert len(worksheet._charts) == 1
+        assert worksheet._charts[0].title.tx.rich.p[0].r[0].t == CHART_TITLE
+        entries = list(worksheet.conditional_formatting)
+        assert len(entries) == 1
+        assert list(worksheet.conditional_formatting[entries[0]])[0].formula == [
+            "$J2=TRUE"
+        ]
     finally:
         workbook.close()
 
