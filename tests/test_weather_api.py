@@ -184,3 +184,15 @@ def test_rejects_invalid_json() -> None:
 
     with pytest.raises(WeatherAPIError, match="body is not valid JSON"):
         OpenMeteoClient(session=session).fetch_current(REGION)
+
+
+def test_rejects_implausible_provider_measurement() -> None:
+    payload = _payload()
+    payload["current"]["temperature_2m"] = 66
+    session, _ = _session_with_payload(payload)
+
+    with pytest.raises(WeatherAPIError) as exc_info:
+        OpenMeteoClient(session=session).fetch_current(REGION)
+
+    assert "region 'toronto'" in str(exc_info.value)
+    assert "temperature_c must be between -100 and 65" in str(exc_info.value)

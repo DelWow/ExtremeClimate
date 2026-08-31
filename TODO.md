@@ -64,21 +64,21 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 10. Data validation logic
 
-- [ ] Add reusable validation for required fields, timestamps, region identifiers, and plausible weather-value ranges.
-- [ ] Add unit tests for accepted records and each rejection category.
-- [ ] Run the focused unit test suite.
+- [x] Add reusable validation for required fields, timestamps, region identifiers, and plausible weather-value ranges.
+- [x] Add unit tests for accepted records and each rejection category.
+- [x] Run the focused unit test suite.
 
 ### 11. Daily transformation and aggregation
 
-- [ ] Add reusable logic that transforms valid `raw_weather` rows into `weather_daily_summary` records.
-- [ ] Define grouping, units, missing-data handling, and idempotent writes.
-- [ ] Add unit tests for aggregation and edge cases, then run them.
+- [x] Add reusable logic that transforms valid `raw_weather` rows into `weather_daily_summary` records.
+- [x] Define grouping, units, missing-data handling, and idempotent writes.
+- [x] Add unit tests for aggregation and edge cases, then run them.
 
 ### 12. Anomaly detection
 
-- [ ] Add reusable logic that compares daily summaries with historical baselines and records/labels anomalies using explicit thresholds.
-- [ ] Add unit tests for normal, boundary, anomalous, and missing-baseline cases.
-- [ ] Run the focused unit test suite.
+- [x] Add reusable logic that compares daily summaries with historical baselines and records/labels anomalies using explicit thresholds.
+- [x] Add unit tests for normal, boundary, anomalous, and missing-baseline cases.
+- [x] Run the focused unit test suite.
 
 ### 13. Excel report: basic output
 
