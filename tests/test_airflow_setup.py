@@ -214,8 +214,14 @@ def test_pipeline_dag_imports_with_ordered_task_structure(monkeypatch) -> None:
     assert all(
         task.kwargs["op_kwargs"]
         == {
-            "window_start": "{{ data_interval_start | ds }}",
-            "window_end": "{{ data_interval_end | ds }}",
+            "window_start": (
+                "{{ dag_run.conf.get('window_start') "
+                "or (data_interval_start | ds) }}"
+            ),
+            "window_end": (
+                "{{ dag_run.conf.get('window_end') "
+                "or (data_interval_end | ds) }}"
+            ),
         }
         for task in tasks
     )
