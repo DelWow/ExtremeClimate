@@ -29,7 +29,8 @@ env/
 .DS_Store
 
 # Local service/runtime artifacts
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 airflow.db
 airflow-webserver.pid
