@@ -161,9 +161,7 @@ regions:
     )
     monkeypatch.setattr(weather_producer, "OpenMeteoClient", FailureClientContext)
 
-    result = weather_producer.main(
-        ["--regions", str(config_path), "--print-only"]
-    )
+    result = weather_producer.main(["--regions", str(config_path), "--print-only"])
 
     captured = capsys.readouterr()
     assert result == 1
@@ -201,9 +199,7 @@ def test_main_rejects_empty_weather_api_endpoint(monkeypatch, capsys) -> None:
     assert captured.err == "error: WEATHER_API_URL must not be empty\n"
 
 
-def test_main_publishes_before_printing(
-    tmp_path: Path, monkeypatch, capsys
-) -> None:
+def test_main_publishes_before_printing(tmp_path: Path, monkeypatch, capsys) -> None:
     config_path = tmp_path / "regions.yaml"
     config_path.write_text(
         """

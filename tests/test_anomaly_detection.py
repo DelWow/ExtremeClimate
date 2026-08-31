@@ -17,7 +17,6 @@ from extreme_climate.anomaly_detection import (
 )
 from extreme_climate.daily_transformation import DailyWeatherSummary
 
-
 SUMMARY_DATE = date(2026, 8, 30)
 
 

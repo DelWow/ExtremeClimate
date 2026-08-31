@@ -14,7 +14,6 @@ import yaml
 from yaml.constructor import ConstructorError
 from yaml.nodes import MappingNode
 
-
 DEFAULT_REGIONS_PATH = Path("config/regions.yaml")
 
 _ROOT_FIELDS = frozenset({"regions"})
@@ -94,8 +93,7 @@ def _validate_fields(
         )
     if unknown:
         problems.append(
-            "unknown field(s): "
-            + ", ".join(sorted(repr(field) for field in unknown))
+            "unknown field(s): " + ", ".join(sorted(repr(field) for field in unknown))
         )
 
     if problems:
@@ -165,7 +163,9 @@ def load_regions(
         contents = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         detail = getattr(exc, "strerror", None) or str(exc)
-        raise RegionConfigError(f"{path}: could not read configuration: {detail}") from exc
+        raise RegionConfigError(
+            f"{path}: could not read configuration: {detail}"
+        ) from exc
 
     try:
         document = yaml.load(contents, Loader=_UniqueKeySafeLoader)

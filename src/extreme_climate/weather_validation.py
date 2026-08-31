@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Collection, Mapping, Optional
 
-
 WEATHER_EVENT_FIELDS = frozenset(
     {
         "region_id",
@@ -109,8 +108,7 @@ def _validate_observed_at(value: Any) -> datetime:
         ) from exc
     if not MIN_OBSERVED_AT <= observed_at <= MAX_OBSERVED_AT:
         raise WeatherValidationError(
-            "observed_at must be between 1900-01-01T00:00:00Z and "
-            "2100-01-01T00:00:00Z"
+            "observed_at must be between 1900-01-01T00:00:00Z and 2100-01-01T00:00:00Z"
         )
     return observed_at
 

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence, Tuple
 from zoneinfo import ZoneInfo
 
+logger = logging.getLogger(__name__)
 
 _SELECT_RAW_WEATHER_FOR_VALIDATION_SQL = """
     SELECT
@@ -158,12 +160,19 @@ def validate_weather_task(
     start_date, end_date = _date_window(window_start, window_end)
     regions = load_regions(_regions_path(source))
     with _connect(source) as connection:
-        return validate_raw_weather_window(
+        validated_count = validate_raw_weather_window(
             connection,
             start_date,
             end_date,
             regions,
         )
+    logger.info(
+        "Validated %d raw weather row(s) for [%s, %s)",
+        validated_count,
+        start_date,
+        end_date,
+    )
+    return validated_count
 
 
 def transform_weather_task(
@@ -187,7 +196,14 @@ def transform_weather_task(
             end_date,
             regions,
         )
-    return len(summaries)
+    summary_count = len(summaries)
+    logger.info(
+        "Stored %d daily summary row(s) for [%s, %s)",
+        summary_count,
+        start_date,
+        end_date,
+    )
+    return summary_count
 
 
 def detect_anomalies_task(
@@ -208,7 +224,14 @@ def detect_anomalies_task(
             start_date,
             end_date,
         )
-    return len(evaluations)
+    evaluation_count = len(evaluations)
+    logger.info(
+        "Evaluated %d daily summary row(s) for anomalies in [%s, %s)",
+        evaluation_count,
+        start_date,
+        end_date,
+    )
+    return evaluation_count
 
 
 def generate_report_task(
@@ -231,6 +254,11 @@ def generate_report_task(
             end_date,
             output_path,
         )
+    logger.info(
+        "Wrote %d report row(s) to %s",
+        result.row_count,
+        result.output_path,
+    )
     return {
         "output_path": str(result.output_path),
         "row_count": result.row_count,

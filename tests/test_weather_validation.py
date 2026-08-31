@@ -41,9 +41,7 @@ def test_accepts_and_normalizes_complete_record() -> None:
     record["source_payload"]["samples"].append(3)
 
     assert validated.region_id == "toronto"
-    assert validated.observed_at == datetime(
-        2026, 8, 28, 12, 0, tzinfo=timezone.utc
-    )
+    assert validated.observed_at == datetime(2026, 8, 28, 12, 0, tzinfo=timezone.utc)
     assert validated.temperature_c == 20.5
     assert validated.humidity_percent == 55.0
     assert validated.precipitation_mm == 0.0

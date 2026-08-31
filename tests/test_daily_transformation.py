@@ -16,7 +16,6 @@ from extreme_climate.daily_transformation import (
 )
 from extreme_climate.region_config import Region
 
-
 TORONTO = Region(
     id="toronto",
     latitude=43.6532,
@@ -45,9 +44,7 @@ def _observation(
         observed_at=datetime.fromisoformat(observed_at),
         temperature_c=Decimal(temperature),
         humidity_percent=None if humidity is None else Decimal(humidity),
-        precipitation_mm=(
-            None if precipitation is None else Decimal(precipitation)
-        ),
+        precipitation_mm=(None if precipitation is None else Decimal(precipitation)),
         wind_speed_mps=None if wind is None else Decimal(wind),
     )
 

@@ -12,7 +12,6 @@ from extreme_climate.pipeline_tasks import (
 )
 from extreme_climate.region_config import Region
 
-
 TORONTO = Region(
     id="toronto",
     latitude=43.6532,

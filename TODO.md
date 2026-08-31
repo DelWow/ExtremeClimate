@@ -118,9 +118,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 19. Final polish
 
-- [ ] Review application code for useful docstrings, complete type hints, consistent logging, and actionable error handling.
-- [ ] Run formatting/static checks and the complete test suite.
-- [ ] Perform a final Compose/DAG configuration validation and ensure no generated artifacts or secrets are tracked.
+- [x] Review application code for useful docstrings, complete type hints, consistent logging, and actionable error handling.
+- [x] Run formatting/static checks and the complete test suite.
+- [x] Perform a final Compose/DAG configuration validation and ensure no generated artifacts or secrets are tracked.
 
 ## Change-control rule
 

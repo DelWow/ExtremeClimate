@@ -12,7 +12,6 @@ import psycopg
 
 from extreme_climate.daily_transformation import DailyWeatherSummary
 
-
 DEFAULT_TEMPERATURE_DEVIATION_C = Decimal("5.00")
 DEFAULT_HUMIDITY_DEVIATION_PERCENTAGE_POINTS = Decimal("15.00")
 DEFAULT_PRECIPITATION_DEVIATION_MM = Decimal("10.00")
@@ -80,9 +79,7 @@ def _positive_decimal(value: Any, field_name: str) -> Decimal:
     try:
         number = value if isinstance(value, Decimal) else Decimal(str(value))
     except (InvalidOperation, ValueError) as exc:
-        raise AnomalyEvaluationError(
-            f"{field_name} must be a positive number"
-        ) from exc
+        raise AnomalyEvaluationError(f"{field_name} must be a positive number") from exc
     if not number.is_finite() or number <= 0:
         raise AnomalyEvaluationError(f"{field_name} must be a positive number")
     return number
@@ -93,9 +90,7 @@ class AnomalyThresholds:
     """Inclusive absolute-deviation thresholds for comparable daily metrics."""
 
     temperature_c: Decimal = DEFAULT_TEMPERATURE_DEVIATION_C
-    humidity_percentage_points: Decimal = (
-        DEFAULT_HUMIDITY_DEVIATION_PERCENTAGE_POINTS
-    )
+    humidity_percentage_points: Decimal = DEFAULT_HUMIDITY_DEVIATION_PERCENTAGE_POINTS
     precipitation_mm: Decimal = DEFAULT_PRECIPITATION_DEVIATION_MM
 
     def __post_init__(self) -> None:
@@ -145,32 +140,29 @@ class AnomalyEvaluation:
 
 
 class CursorProtocol(Protocol):
-    def __enter__(self) -> "CursorProtocol":
-        ...
+    """Database cursor operations used by anomaly detection."""
 
-    def __exit__(self, *args: Any) -> None:
-        ...
+    def __enter__(self) -> "CursorProtocol": ...
 
-    def fetchall(self) -> Sequence[Sequence[Any]]:
-        ...
+    def __exit__(self, *args: Any) -> None: ...
+
+    def fetchall(self) -> Sequence[Sequence[Any]]: ...
 
     def executemany(
         self,
         query: str,
         params_seq: Iterable[Sequence[Any]],
-    ) -> None:
-        ...
+    ) -> None: ...
 
 
 class ConnectionProtocol(Protocol):
-    def transaction(self) -> Any:
-        ...
+    """Database connection operations required by anomaly detection."""
 
-    def execute(self, query: str, params: Sequence[Any]) -> CursorProtocol:
-        ...
+    def transaction(self) -> Any: ...
 
-    def cursor(self) -> CursorProtocol:
-        ...
+    def execute(self, query: str, params: Sequence[Any]) -> CursorProtocol: ...
+
+    def cursor(self) -> CursorProtocol: ...
 
 
 def _policy_details(thresholds: AnomalyThresholds) -> Dict[str, Any]:
@@ -178,9 +170,7 @@ def _policy_details(thresholds: AnomalyThresholds) -> Dict[str, Any]:
         "threshold_rule": "absolute_deviation_greater_than_or_equal",
         "thresholds": {
             "mean_temperature_c": float(thresholds.temperature_c),
-            "mean_humidity_percent": float(
-                thresholds.humidity_percentage_points
-            ),
+            "mean_humidity_percent": float(thresholds.humidity_percentage_points),
             "total_precipitation_mm": float(thresholds.precipitation_mm),
         },
     }
@@ -261,9 +251,7 @@ def evaluate_weather_anomaly(
         or baseline.month != summary.summary_date.month
         or baseline.day != summary.summary_date.day
     ):
-        raise AnomalyEvaluationError(
-            "baseline key does not match the daily summary"
-        )
+        raise AnomalyEvaluationError("baseline key does not match the daily summary")
 
     metric_inputs = (
         (
@@ -330,9 +318,7 @@ def _summary_and_baseline_from_row(
     row: Sequence[Any],
 ) -> Tuple[DailyWeatherSummary, Optional[HistoricalWeatherBaseline]]:
     if len(row) != 13:
-        raise AnomalyEvaluationError(
-            "summary/baseline query returned an invalid row"
-        )
+        raise AnomalyEvaluationError("summary/baseline query returned an invalid row")
     summary = DailyWeatherSummary(
         region_id=row[0],
         summary_date=row[1],

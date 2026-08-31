@@ -7,8 +7,8 @@ import pytest
 from confluent_kafka import KafkaException
 
 from extreme_climate import weather_consumer
-from extreme_climate.weather_api import WeatherEvent
 from extreme_climate.postgres_config import PostgresConfigError
+from extreme_climate.weather_api import WeatherEvent
 from extreme_climate.weather_consumer import (
     ConsumerConfigError,
     EventDeserializationError,
@@ -165,9 +165,7 @@ def test_deserializes_producer_event_contract() -> None:
     event = deserialize_weather_event(_event_bytes())
 
     assert event.region_id == "toronto"
-    assert event.observed_at == datetime(
-        2026, 8, 28, 12, 0, tzinfo=timezone.utc
-    )
+    assert event.observed_at == datetime(2026, 8, 28, 12, 0, tzinfo=timezone.utc)
     assert event.temperature_c == 20.5
     assert event.humidity_percent == 55.0
     assert event.precipitation_mm == 0.0
@@ -188,11 +186,7 @@ def test_deserializes_producer_event_contract() -> None:
         ),
         (
             json.dumps(
-                {
-                    key: value
-                    for key, value in _payload().items()
-                    if key != "region_id"
-                }
+                {key: value for key, value in _payload().items() if key != "region_id"}
             ).encode(),
             "missing field(s): region_id",
         ),

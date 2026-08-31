@@ -17,10 +17,8 @@ from extreme_climate.baseline_seed import (
 )
 from extreme_climate.region_config import DEFAULT_REGIONS_PATH
 
-
 _HEADER = (
-    "region_id,month,mean_temperature_c,mean_humidity_percent,"
-    "mean_precipitation_mm\n"
+    "region_id,month,mean_temperature_c,mean_humidity_percent,mean_precipitation_mm\n"
 )
 
 
@@ -40,10 +38,7 @@ regions:
 
 
 def _monthly_fixture_lines(region_id: str = "test-region") -> list[str]:
-    return [
-        f"{region_id},{month},{month}.00,50.00,1.00\n"
-        for month in range(1, 13)
-    ]
+    return [f"{region_id},{month},{month}.00,50.00,1.00\n" for month in range(1, 13)]
 
 
 def _write_fixture(tmp_path: Path, lines: list[str]) -> Path:
@@ -179,9 +174,7 @@ def test_checked_in_fixture_has_complete_leap_year_coverage() -> None:
         ),
     ],
 )
-def test_rejects_invalid_fixture(
-    tmp_path: Path, mutate, expected_error: str
-) -> None:
+def test_rejects_invalid_fixture(tmp_path: Path, mutate, expected_error: str) -> None:
     lines = _monthly_fixture_lines()
     mutate(lines)
     fixture_path = _write_fixture(tmp_path, lines)
@@ -268,9 +261,7 @@ def test_main_reports_seed_result(monkeypatch, capsys) -> None:
 
     captured = capsys.readouterr()
     assert result == 0
-    assert calls == [
-        (DEFAULT_BASELINE_FIXTURE_PATH, DEFAULT_REGIONS_PATH, settings)
-    ]
+    assert calls == [(DEFAULT_BASELINE_FIXTURE_PATH, DEFAULT_REGIONS_PATH, settings)]
     assert captured.out == (
         "Seeded 1830 historical baseline row(s) "
         "from data/historical_baseline_monthly.csv\n"
