@@ -100,9 +100,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 16. Airflow pipeline DAG
 
-- [ ] Replace the smoke DAG with an ordered workflow that calls the already-tested validation, transformation, anomaly, and report functions.
-- [ ] Configure dependencies, retries, and runtime settings without duplicating business logic in the DAG.
-- [ ] Add DAG-structure/import tests and run them.
+- [x] Replace the smoke DAG with an ordered workflow that calls the already-tested validation, transformation, anomaly, and report functions.
+- [x] Configure dependencies, retries, and runtime settings without duplicating business logic in the DAG.
+- [x] Add DAG-structure/import tests and run them.
 
 ### 17. End-to-end pipeline test
 

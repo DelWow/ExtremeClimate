@@ -10,6 +10,15 @@ x-airflow-common: &airflow-common
     AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
     PYTHONPATH: /opt/airflow/project/src
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: 5432
+    POSTGRES_DB: ${POSTGRES_DB:-extreme_climate}
+    POSTGRES_USER: ${POSTGRES_USER:-extreme_climate}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-extreme_climate_dev}
+    POSTGRES_CONNECT_TIMEOUT_SECONDS: ${POSTGRES_CONNECT_TIMEOUT_SECONDS:-10}
+    REGIONS_CONFIG_PATH: /opt/airflow/project/config/regions.yaml
+    REPORT_OUTPUT_DIR: /opt/airflow/project/reports
+    _PIP_ADDITIONAL_REQUIREMENTS: "psycopg[binary]==3.2.13 openpyxl==3.1.5 PyYAML==6.0.3"
   volumes:
     - ./dags:/opt/airflow/dags:ro
     - ./logs:/opt/airflow/logs
@@ -19,6 +28,8 @@ x-airflow-common: &airflow-common
     - ./reports:/opt/airflow/project/reports
   depends_on:
     airflow-postgres:
+      condition: service_healthy
+    postgres:
       condition: service_healthy
 
 services:
@@ -117,6 +128,8 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     healthcheck:
       test:
         - CMD
@@ -137,6 +150,8 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     healthcheck:
       test:
         - CMD
