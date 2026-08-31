@@ -1,5 +1,6 @@
 import runpy
 import sys
+from datetime import timedelta
 from pathlib import Path
 from types import ModuleType
 
@@ -8,7 +9,7 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 COMPOSE_PATH = PROJECT_ROOT / "docker-compose.yml"
-SMOKE_DAG_PATH = PROJECT_ROOT / "dags" / "extreme_climate_smoke.py"
+PIPELINE_DAG_PATH = PROJECT_ROOT / "dags" / "extreme_climate_pipeline.py"
 
 
 def _compose() -> dict:
@@ -84,6 +85,9 @@ def test_airflow_runtime_services_wait_for_successful_initialization() -> None:
         assert service["depends_on"]["airflow-init"]["condition"] == (
             "service_completed_successfully"
         )
+        assert service["depends_on"]["postgres"]["condition"] == (
+            "service_healthy"
+        )
         assert service["restart"] == "unless-stopped"
         assert service["environment"]["AIRFLOW__CORE__LOAD_EXAMPLES"] == "false"
 
@@ -100,6 +104,20 @@ def test_airflow_services_mount_required_project_directories() -> None:
         "./reports:/opt/airflow/project/reports",
     ]
     assert scheduler["environment"]["PYTHONPATH"] == "/opt/airflow/project/src"
+
+
+def test_airflow_tasks_have_application_database_and_runtime_dependencies() -> None:
+    environment = _compose()["services"]["airflow-scheduler"]["environment"]
+
+    assert environment["POSTGRES_HOST"] == "postgres"
+    assert environment["POSTGRES_PORT"] == 5432
+    assert environment["REGIONS_CONFIG_PATH"] == (
+        "/opt/airflow/project/config/regions.yaml"
+    )
+    assert environment["REPORT_OUTPUT_DIR"] == "/opt/airflow/project/reports"
+    assert environment["_PIP_ADDITIONAL_REQUIREMENTS"] == (
+        "psycopg[binary]==3.2.13 openpyxl==3.1.5 PyYAML==6.0.3"
+    )
 
 
 def test_airflow_webserver_and_scheduler_have_component_healthchecks() -> None:
@@ -125,9 +143,10 @@ def test_airflow_webserver_and_scheduler_have_component_healthchecks() -> None:
     ]
 
 
-def test_smoke_dag_imports_with_expected_non_pipeline_structure(monkeypatch) -> None:
+def test_pipeline_dag_imports_with_ordered_task_structure(monkeypatch) -> None:
     dag_calls = []
-    task_calls = []
+    tasks = []
+    dependencies = []
 
     class FakeDAG:
         def __init__(self, **kwargs):
@@ -139,30 +158,69 @@ def test_smoke_dag_imports_with_expected_non_pipeline_structure(monkeypatch) -> 
         def __exit__(self, *_args):
             return None
 
-    class FakeEmptyOperator:
+    class FakePythonOperator:
         def __init__(self, **kwargs):
-            task_calls.append(kwargs)
+            self.kwargs = kwargs
+            tasks.append(self)
+
+        def __rshift__(self, other):
+            dependencies.append(
+                (self.kwargs["task_id"], other.kwargs["task_id"])
+            )
+            return other
 
     airflow_module = ModuleType("airflow")
     airflow_module.DAG = FakeDAG
     operators_module = ModuleType("airflow.operators")
-    empty_module = ModuleType("airflow.operators.empty")
-    empty_module.EmptyOperator = FakeEmptyOperator
+    python_module = ModuleType("airflow.operators.python")
+    python_module.PythonOperator = FakePythonOperator
     monkeypatch.setitem(sys.modules, "airflow", airflow_module)
     monkeypatch.setitem(sys.modules, "airflow.operators", operators_module)
-    monkeypatch.setitem(sys.modules, "airflow.operators.empty", empty_module)
+    monkeypatch.setitem(sys.modules, "airflow.operators.python", python_module)
 
-    namespace = runpy.run_path(str(SMOKE_DAG_PATH))
+    namespace = runpy.run_path(str(PIPELINE_DAG_PATH))
 
     assert "dag" in namespace
     assert len(dag_calls) == 1
     dag_config = dag_calls[0]
-    assert dag_config["dag_id"] == "extreme_climate_smoke"
+    assert dag_config["dag_id"] == "extreme_climate_pipeline"
     assert dag_config["description"] == (
-        "Verify that the Extreme Climate DAG directory loads."
+        "Validate, aggregate, evaluate, and report daily weather data."
     )
     assert dag_config["start_date"].isoformat() == "2024-01-01T00:00:00+00:00"
-    assert dag_config["schedule"] is None
+    assert dag_config["schedule"] == "@daily"
     assert dag_config["catchup"] is False
-    assert dag_config["tags"] == ["extreme-climate", "smoke"]
-    assert task_calls == [{"task_id": "smoke"}]
+    assert dag_config["max_active_runs"] == 1
+    assert dag_config["default_args"] == {
+        "owner": "extreme-climate",
+        "depends_on_past": False,
+        "retries": 2,
+        "retry_delay": timedelta(minutes=5),
+    }
+    assert dag_config["tags"] == ["extreme-climate", "weather"]
+
+    assert [task.kwargs["task_id"] for task in tasks] == [
+        "validate_raw_weather",
+        "transform_daily_weather",
+        "detect_weather_anomalies",
+        "generate_excel_report",
+    ]
+    assert [task.kwargs["python_callable"].__name__ for task in tasks] == [
+        "validate_weather_task",
+        "transform_weather_task",
+        "detect_anomalies_task",
+        "generate_report_task",
+    ]
+    assert all(
+        task.kwargs["op_kwargs"]
+        == {
+            "window_start": "{{ data_interval_start | ds }}",
+            "window_end": "{{ data_interval_end | ds }}",
+        }
+        for task in tasks
+    )
+    assert dependencies == [
+        ("validate_raw_weather", "transform_daily_weather"),
+        ("transform_daily_weather", "detect_weather_anomalies"),
+        ("detect_weather_anomalies", "generate_excel_report"),
+    ]
