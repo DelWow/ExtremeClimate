@@ -112,9 +112,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 18. README documentation
 
-- [ ] Replace the placeholder README with architecture, prerequisites, configuration, setup, operation, testing, troubleshooting, and teardown instructions.
-- [ ] Include the verified end-to-end workflow and report location.
-- [ ] Follow the README from a clean-start perspective and correct any gaps found.
+- [x] Replace the placeholder README with architecture, prerequisites, configuration, setup, operation, testing, troubleshooting, and teardown instructions.
+- [x] Include the verified end-to-end workflow and report location.
+- [x] Follow the README from a clean-start perspective and correct any gaps found.
 
 ### 19. Final polish
 
