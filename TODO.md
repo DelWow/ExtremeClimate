@@ -88,9 +88,9 @@ This checklist is the implementation sequence. Each numbered task is intended to
 
 ### 14. Excel report: chart and formatting
 
-- [ ] Add a trend chart and conditional formatting for anomalous values to the existing report.
-- [ ] Add tests that inspect the workbook for the chart series and formatting rules.
-- [ ] Generate and inspect a representative report.
+- [x] Add a trend chart and conditional formatting for anomalous values to the existing report.
+- [x] Add tests that inspect the workbook for the chart series and formatting rules.
+- [x] Generate and inspect a representative report.
 
 ### 15. Docker Compose: Airflow
 

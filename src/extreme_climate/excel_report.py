@@ -1,4 +1,4 @@
-"""Generate the basic single-sheet Excel report for daily weather summaries."""
+"""Generate the formatted single-sheet Excel daily-weather report."""
 
 from __future__ import annotations
 
@@ -11,10 +11,22 @@ from typing import Any, Iterable, Mapping, Optional, Protocol, Sequence, Tuple, 
 
 import psycopg
 from openpyxl import Workbook
+from openpyxl.chart import LineChart, Reference, Series
+from openpyxl.chart.data_source import AxDataSource, NumRef
+from openpyxl.formatting.rule import FormulaRule
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
 
 DEFAULT_REPORT_PATH = Path("reports/extreme_climate_daily.xlsx")
 WORKSHEET_TITLE = "Daily Weather"
+CHART_TITLE = "Mean Temperature Trend"
+CHART_ANCHOR = "N2"
+HEADER_FILL_COLOR = "FF1F4E78"
+HEADER_FONT_COLOR = "FFFFFFFF"
+ANOMALY_FILL_COLOR = "FFFFC7CE"
+ANOMALY_FONT_COLOR = "FF9C0006"
 REPORT_HEADERS = (
     "Region ID",
     "Summary Date",
@@ -28,6 +40,29 @@ REPORT_HEADERS = (
     "Is Anomaly",
     "Anomaly Status",
     "Anomaly Details",
+)
+
+_COLUMN_WIDTHS = (
+    16,
+    14,
+    19,
+    23,
+    26,
+    26,
+    21,
+    27,
+    27,
+    14,
+    22,
+    60,
+)
+_CHART_SERIES_COLORS = (
+    "4472C4",
+    "ED7D31",
+    "70AD47",
+    "A5A5A5",
+    "FFC000",
+    "5B9BD5",
 )
 
 _SELECT_REPORT_ROWS_SQL = """
@@ -179,10 +214,126 @@ def _excel_number(value: Optional[Decimal]) -> Optional[float]:
     return None if value is None else float(value)
 
 
+def _format_worksheet(worksheet: Worksheet) -> None:
+    header_fill = PatternFill(fill_type="solid", fgColor=HEADER_FILL_COLOR)
+    header_font = Font(color=HEADER_FONT_COLOR, bold=True)
+    thin_gray = Side(style="thin", color="FFD9E2F3")
+    data_border = Border(bottom=thin_gray)
+
+    for cell in worksheet[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+            wrap_text=True,
+        )
+    worksheet.row_dimensions[1].height = 34
+
+    for index, width in enumerate(_COLUMN_WIDTHS, start=1):
+        worksheet.column_dimensions[get_column_letter(index)].width = width
+
+    for row_index in range(2, worksheet.max_row + 1):
+        for cell in worksheet[row_index]:
+            cell.border = data_border
+            cell.alignment = Alignment(vertical="top")
+        worksheet.cell(row=row_index, column=2).number_format = "yyyy-mm-dd"
+        worksheet.cell(row=row_index, column=3).number_format = "0"
+        for column_index in range(4, 10):
+            worksheet.cell(row=row_index, column=column_index).number_format = "0.00"
+        for column_index in (2, 3, 10, 11):
+            worksheet.cell(row=row_index, column=column_index).alignment = Alignment(
+                horizontal="center",
+                vertical="top",
+            )
+        worksheet.cell(row=row_index, column=12).alignment = Alignment(
+            vertical="top",
+            wrap_text=True,
+        )
+
+    worksheet.freeze_panes = "A2"
+    worksheet.auto_filter.ref = f"A1:L{worksheet.max_row}"
+    worksheet.sheet_view.showGridLines = False
+    worksheet.sheet_properties.pageSetUpPr.fitToPage = True
+    worksheet.page_setup.orientation = "landscape"
+    worksheet.page_setup.fitToWidth = 1
+    worksheet.page_setup.fitToHeight = 0
+    worksheet.print_title_rows = "1:1"
+
+    if worksheet.max_row > 1:
+        anomaly_fill = PatternFill(
+            fill_type="solid",
+            fgColor=ANOMALY_FILL_COLOR,
+        )
+        anomaly_font = Font(color=ANOMALY_FONT_COLOR)
+        worksheet.conditional_formatting.add(
+            f"A2:L{worksheet.max_row}",
+            FormulaRule(
+                formula=["$J2=TRUE"],
+                fill=anomaly_fill,
+                font=anomaly_font,
+                stopIfTrue=True,
+            ),
+        )
+
+
+def _add_temperature_chart(
+    worksheet: Worksheet,
+    rows: Sequence[WeatherReportRow],
+) -> None:
+    chart = LineChart()
+    chart.title = CHART_TITLE
+    chart.style = 13
+    chart.y_axis.title = "Temperature (°C)"
+    chart.x_axis.title = "Summary Date"
+    chart.height = 9
+    chart.width = 18
+    chart.legend.position = "r"
+    chart.display_blanks = "gap"
+
+    start = 0
+    color_index = 0
+    while start < len(rows):
+        region_id = rows[start].region_id
+        end = start + 1
+        while end < len(rows) and rows[end].region_id == region_id:
+            end += 1
+        region_rows = rows[start:end]
+        if any(row.mean_temperature_c is not None for row in region_rows):
+            first_excel_row = start + 2
+            last_excel_row = end + 1
+            values = Reference(
+                worksheet,
+                min_col=4,
+                min_row=first_excel_row,
+                max_row=last_excel_row,
+            )
+            categories = Reference(
+                worksheet,
+                min_col=2,
+                min_row=first_excel_row,
+                max_row=last_excel_row,
+            )
+            series = Series(values, title=region_id)
+            series.cat = AxDataSource(numRef=NumRef(f=categories))
+            series.marker.symbol = "circle"
+            series.marker.size = 5
+            series.graphicalProperties.line.solidFill = _CHART_SERIES_COLORS[
+                color_index % len(_CHART_SERIES_COLORS)
+            ]
+            series.graphicalProperties.line.width = 24000
+            chart.series.append(series)
+            color_index += 1
+        start = end
+
+    if chart.series:
+        worksheet.add_chart(chart, CHART_ANCHOR)
+
+
 def build_weather_report_workbook(
     rows: Iterable[WeatherReportRow],
 ) -> Workbook:
-    """Build a deterministic, single-sheet workbook without visual styling."""
+    """Build a deterministic, formatted, single-sheet workbook."""
 
     report_rows = tuple(rows)
     keys = [(row.region_id, row.summary_date) for row in report_rows]
@@ -213,6 +364,8 @@ def build_weather_report_workbook(
                 row.anomaly_details_json,
             )
         )
+    _format_worksheet(worksheet)
+    _add_temperature_chart(worksheet, report_rows)
     return workbook
 
 
